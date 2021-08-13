@@ -1,0 +1,429 @@
+import os       # OSライブラリ
+import platform # OS の判別
+# Selectタグが扱えるエレメントに変化させる為の関数 Select を読み込む
+from selenium.webdriver.support.ui import Select
+# ブラウザをキーボードで操作するためのライブラリを読み込む
+from selenium.webdriver.common.keys import Keys
+# 時間に関するライブラリを読み込む
+import time
+# パスワード入力用のライブラリを読み込む
+import getpass
+# クリップボードのライブラリを読み込む
+import pyperclip
+import gspread_dataframe
+import datetime
+import gspread
+import pandas as pd
+from oauth2client.service_account import ServiceAccountCredentials
+from statistics import mode
+import re
+import requests
+import ppprint
+import sys
+import numpy
+
+# Gmail関係
+import smtplib
+from email.mime.text import MIMEText
+import ssl
+from email.utils import formatdate
+
+
+# クロームドライバー関係
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+
+# driver = webdriver.Chrome(ChromeDriverManager().install())
+
+aaa_set_jigenn = "3限" #何限目かをいれる。ex, ×02限　〇2限
+aaa_set_kamokucode = "23001" #科目コードをいれる
+youbi = "Tuesday"   # 授業の曜日を、英語でいれる（先頭は必ず大文字にする）
+yasumi = ["2021-7-23","2021-7-29","2021-7-30"]#授業の休校日を入れる。ex.2021-4-14 複数入力でリスト作成。一桁目は0入れない。
+
+
+# 福祉住環境学 52001  2限
+# 保育原理 53001　　　3限
+# 社会的養護Ⅰ 23001　3限
+# 保育内容（人間関係） 33009　　3限
+# 保育の計画と評価 34008　　　　4限
+
+# 月曜日：Monday
+# 火曜日：Tuesday
+# 水曜日：Wednesday
+# 木曜日：Thursday
+# 金曜日：Friday
+# 土曜日：Saturday
+
+
+aaa_user_id = "" #ユーザー名
+aaa_user_pw = ""
+
+shusseki = 1
+kesseki = 0
+
+pf = platform.system() # OS
+
+pd.set_option('display.max_rows',10000)
+pd.set_option('display.max_columns', 10000)
+
+
+
+nitiji = datetime.timezone(datetime.timedelta(hours=9))  #日本時間の算出
+dt = datetime.datetime.now(nitiji)   #現在時刻の算出
+youbi1 = (dt.strftime('%A')) #曜日の算出
+
+
+# 該当授業の曜日計算器
+if youbi =="Monday":
+    if youbi1 == "Sunday":
+        youbi2 = -6
+    elif youbi1 == "Monday":
+        youbi2 = 0
+    elif youbi1 == "Tuesday":
+        youbi2 = -1
+    elif youbi1 == "Wednesday":
+        youbi2 = -2
+    elif youbi1 == "Thursday":
+        youbi2 = -3
+    elif youbi1 == "Friday":
+        youbi2 = -4
+    elif youbi1 == "Saturday":
+        youbi2 = -5
+elif youbi =="Tuesday":
+    if youbi1 == "Sunday":
+        youbi2 = -5
+    elif youbi1 == "Monday":
+        youbi2 = -6
+    elif youbi1 == "Tuesday":
+        youbi2 = 0
+    elif youbi1 == "Wednesday":
+        youbi2 = -1
+    elif youbi1 == "Thursday":
+        youbi2 = -2
+    elif youbi1 == "Friday":
+        youbi2 = -3
+    elif youbi1 == "Saturday":
+        youbi2 = -4
+elif youbi =="Wednesday":
+    # 授業日を計算（【水曜日】 の授業の場合）
+    if youbi1 == "Sunday":
+        youbi2 = -4
+    elif youbi1 == "Monday":
+        youbi2 = -5
+    elif youbi1 == "Tuesday":
+        youbi2 = -6
+    elif youbi1 == "Wednesday":
+        youbi2 = 0
+    elif youbi1 == "Thursday":
+        youbi2 = -1
+    elif youbi1 == "Friday":
+        youbi2 = -2
+    elif youbi1 == "Saturday":
+        youbi2 = -3
+elif youbi =="Thursday":
+    if youbi1 == "Sunday":
+        youbi2 = -3
+    elif youbi1 == "Monday":
+        youbi2 = -4
+    elif youbi1 == "Tuesday":
+        youbi2 = -5
+    elif youbi1 == "Wednesday":
+        youbi2 = -6
+    elif youbi1 == "Thursday":
+        youbi2 =  0
+    elif youbi1 == "Friday":
+        youbi2 = -1
+    elif youbi1 == "Saturday":
+        youbi2 = -2
+elif youbi =="Friday":
+    if youbi1 == "Sunday":
+        youbi2 = -2
+    elif youbi1 == "Monday":
+        youbi2 = -3
+    elif youbi1 == "Tuesday":
+        youbi2 = -4
+    elif youbi1 == "Wednesday":
+        youbi2 = -5
+    elif youbi1 == "Thursday":
+        youbi2 = -6
+    elif youbi1 == "Friday":
+        youbi2 = 0
+    elif youbi1 == "Saturday":
+        youbi2 = -1
+elif youbi =="Saturday":
+    if youbi1 == "Sunday":
+            youbi2 = -1
+    elif youbi1 == "Monday":
+            youbi2 = -2
+    elif youbi1 == "Tuesday":
+            youbi2 = -3
+    elif youbi1 == "Wednesday":
+            youbi2 = -4
+    elif youbi1 == "Thursday":
+            youbi2 = -5
+    elif youbi1 == "Friday":
+            youbi2 = -6
+    elif youbi1 == "Saturday":
+            youbi2 = 0
+
+dt2 = dt+ datetime.timedelta(days=youbi2)
+dt3 = dt2.strftime('%Y')
+dt4 = dt2.strftime('%m').lstrip("0")
+dt5 = dt2.strftime('%d').lstrip("0")
+dt3a = dt.strftime('%Y')
+dt4a = dt.strftime('%m').lstrip("0")
+dt5a = dt.strftime('%d').lstrip("0")
+dt6= dt3+"-"+dt4+"-"+dt5 #授業日連結数字　ex2021-04-01
+dt7= dt3a+"-"+dt4a+"-"+dt5a #入力日連結数字　ex2021-04-03
+
+
+for i in yasumi:
+ if dt6 == i:
+    sys.exit()
+
+
+#jsonファイルを使って認証情報を取得
+SCOPES = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/spreadsheets','https://www.googleapis.com/auth/drive.file','https://www.googleapis.com/auth/drive']
+SERVICE_ACCOUNT_FILE = 'agile-sprite-290409-482fa79d22e8.json'
+credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE,SCOPES)
+
+#認証情報を使ってスプレッドシートの捜査権を取得
+gs = gspread.authorize(credentials)
+
+
+#共有したスプレッドシートのキーを使ってシートの情報を取得
+SPREADSHEET_KEY = 'しーとのきー'
+worksheet = gs.open_by_key(SPREADSHEET_KEY).worksheet("フォームの回答 1")
+
+workbook = gs.open_by_key(SPREADSHEET_KEY)
+worksheet = workbook.worksheet("フォームの回答 1")
+worksheet2 = workbook.worksheet("名簿")
+worksheet3 = workbook.worksheet("間違え及び遅延者")
+worksheet4 = workbook.worksheet("メール設定")
+
+df = pd.DataFrame(worksheet.get_all_values())
+df2 = pd.DataFrame(worksheet2.get_all_values())
+df3 = pd.DataFrame(worksheet3.get_all_values())
+df4 = pd.DataFrame(worksheet4.get_all_values())
+
+#レコードが0の場合つまり、入力者がいない場合のエラー処理
+dt3=int(dt3)#なぜかint型（整数型）がもとめられるので変換
+dt4=int(dt4)
+dt5=int(dt5)
+dt3a =int(dt3a)
+dt4a =int(dt4a)
+dt5a =int(dt5a)
+
+
+
+dfaa = df.drop(df.columns[0])#0行目のグーグルが付与する【タイムスタンプ】などの言葉を消す
+dfaa[0] = pd.to_datetime(dfaa[0]) 
+dfaa = dfaa.set_index(0)
+dfba= dfaa[(dfaa.index >= datetime.datetime(dt3,dt4,dt5)) & (dfaa.index <= datetime.datetime(dt3a,dt4a,dt5a)) ]
+mukaitou = len(dfba)
+if mukaitou < 1:  #レコードが0の場合つまり、入力者がいない場合のエラー処理
+    sys.exit()
+
+
+
+dfa = df.drop(df.columns[0])#0行目のグーグルが付与する【タイムスタンプ】などの言葉を消さないとdatetime変換が不可能なため削除
+dfa[0] = pd.to_datetime(dfa[0])
+dfa = dfa.set_index(0)
+dfb = dfaa[(dfaa.index >= datetime.datetime(dt3,dt4,dt5)) & (dfaa.index <= datetime.datetime(dt3a,dt4a,dt5a)) ]#授業日から入力日までの期間を指定する。ex,2021-04-05から2021-04-09
+kai = mode(dfb[1]) #授業日からデータ入力日の授業回の最頻値を取得 なぜかpandasのmodeでは余計な変数が出るためpythonのstatictics利用
+miss = (dfb[dfb[1] != kai])#授業日から入力日までの間違っている人を最頻値の否定として発見する。ただし、他の回の遅れたレポートを出してくる可能性もあるがこれについては欠席扱いとして処理する
+gspread_dataframe.set_with_dataframe(worksheet3,miss.reset_index())#遅刻者と遅延者をスプレッドシートに書き込み
+
+# # # メール内容
+body = df4.iat[0,0] #メール本文
+title = df4.iat[1,0] #件名
+# 全ての値を、dataという変数に代入しています。
+data = miss.reset_index()
+
+# データ数を取得
+last_number = len(data)
+
+if last_number <1:
+   pass
+elif last_number <=1:
+  for row in range(last_number):
+    # メール送信に必要な情報を抽出
+    full_name = data.iat[row,2]  # お名前
+    msg = MIMEText(full_name+"様"+"\n\n" + body)
+    msg['Subject'] = title
+    msg['From'] = 'メールアドレス'
+    msg['To'] = data.iat[row,4] # 学生のメールアドレス
+    msg['Date'] = formatdate()
+
+    smtp = smtplib.SMTP('smtp.gmail.com', 587)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.ehlo()
+    smtp.login('メールアドレス', 'ぱすわーど')
+    smtp.send_message(msg)
+    smtp.close()
+
+aaa_set_dainannkai = str(kai) # 入力するときは、1の桁にも0をいれる。ex.第01回
+
+# 名簿から学籍番号を抽出し、さらにそれをパイソン上の出席回と連結して表示
+deta5 = df2[0]
+deta6 = aaa_set_dainannkai + deta5
+
+result = []
+for i in range(1,len(df)):
+# 出席した人の回を表示する
+    deta = df[1]
+    deta1 = (deta[i][0:4])
+# 出席した人の学籍番号を表示する
+    deta2 = df[2][i]
+    deta3 = (deta2[0:7])
+# フォームから出席回＋学籍番号を連結する（ex第1回16FM001)
+    deta4 = deta1+deta3
+    result.append(deta4)
+
+# 該当の出席者がいるかどうか確認する
+#print(set(deta6) & set(result))
+
+
+
+data7 = set(deta6) & set(result)
+
+data8 = {}
+
+for i in list(df2[0]):
+    if aaa_set_dainannkai + i in data7:
+        data8[i] = 1
+    else:
+        data8[i] = 0
+
+def operate_browser(list_op):
+    """この関数はブラウザの操作（文字列の送信, クリック）をする関数である.
+    引数はリストのリストで,
+    個々のリストは
+    [id,operation,time_sleep] (html の id, ブラウザの操作, sleep する時間)
+    となっており, operation は
+    文字列なら send_keys (文字列を送信)
+    1 なら click (クリックする)
+    2 なら getpass and send_keys (パスワードを入力して送信)
+    となっている.
+    """
+    # p.87, 4.2.1 for ループとリストを組み合わせる
+    for l in list_op:
+        # p.290, 11.7.2 ページの要素を見つける
+        try:
+            element = browser.find_element_by_id(l[0])
+        except:
+            print("ID: " + l[0] + " が存在しません。")
+            # browser.quit()
+
+        if type(l[1]) == str:
+            if l[0] == "ctl00_cphMain_ddlJigen":
+                element.send_keys(l[1])
+            elif element.tag_name == "select":
+                element_select = Select(element)
+                try:
+                    element_select.select_by_value(l[1])
+                except:
+                    browser.quit()
+            else:
+                element.clear()
+                try:
+                    pyperclip.copy(l[1])
+                    if pf == "Darwin":
+                        # p.293, 11.7.5 特殊なキーを送信する
+                        # https://www.mahirokazuko.com/entry/2019/07/23/170315
+                        # element.send_keys(Keys.CONTROL, Keys.INSERT) # Chrome + Selenium + Mac のコピー
+                        element.send_keys(Keys.SHIFT, Keys.INSERT)  # Chrome + Selenium + Mac のペースト
+                    elif pf == "Windows":
+                        element.send_keys(Keys.CONTROL, "v")
+                    else:
+                        element.send_keys(l[1])
+                except:
+                    browser.quit()
+        elif l[1] == 1:
+            # p.292, 11.7.3 ページをクリックする
+            element.click()
+        elif l[1] == 2:
+            # パスワードを送信
+            pw = getpass.getpass()
+            element.send_keys(pw)
+        if l[2] > 0:
+            time.sleep(l[2])
+
+
+def input_attendance(dictionary_attendance, tableID, symbol_attendance, symbol_absence):
+    """この関数は学生の出欠情報を入力する関数である.
+    最初の引数は出欠情報を辞書形式にしたもの,
+    2番目の引数は html の中の出欠を入力する tabel の ID,
+    3番目の引数は出席の記号,
+    4番目の引数は欠席の記号
+    である.
+    """
+    table_elem = browser.find_element_by_id(tableID)
+    tr_elems = table_elem.find_elements_by_tag_name("tr")
+    for i in range(1, len(tr_elems)):
+        td_elems = tr_elems[i].find_elements_by_tag_name("td")
+        if dictionary_attendance[td_elems[0].text] == symbol_attendance:
+            element = td_elems[4]
+            element.click()
+        elif dictionary_attendance[td_elems[0].text] == symbol_absence:
+            element = td_elems[6]
+            element.click()
+
+
+# Chrome の driver
+driver_path = webdriver.Chrome(ChromeDriverManager().install())
+# Chrome を起動。以後、 browser という名前で操作する
+browser = driver_path
+# 変数 url に web page の url をいれる
+url = 'あくてぃぶあかでみーのURL'
+# url を読み込む
+browser.get(url)
+
+list_op_login = [
+    # ユーザー ID を入力
+    ["txtUserid", aaa_user_id, 0],
+    # パスワードを手動で入力
+    ["txtUserpw", aaa_user_pw, 0],
+    # ログインをクリック
+    ["ibtnLogin", 1, 0],
+    # 出欠情報入力
+    ["repMenuCategory_ctl04_repSubMenu_ctl00_lbtnSubMenu", 1, 0]
+]
+
+# AAA に login する
+operate_browser(list_op_login)
+
+aaa_lecture_code = aaa_set_kamokucode
+aaa_impliment_year = str(dt3)
+aaa_impliment_month = str(dt4)
+aaa_impliment_date = str(dt5)
+aaa_impliment_time = aaa_set_jigenn
+aaa_dict_attendance = data8
+
+# excel のファイルに記入してある「授業コード」「授業実施日」「時限」の
+# 出欠の入力画面へ移動する
+list_op_select_subj_datetime = [
+    # 授業コード
+    ["ctl00_cphMain_ctlSearchJugyou_txtCode", aaa_lecture_code, 0],
+    # 授業実施日
+    ["ctl00_cphMain_ctlAjaxCalendar_cmbY", aaa_impliment_year, 0],
+    ["ctl00_cphMain_ctlAjaxCalendar_cmbM", aaa_impliment_month, 0],
+    ["ctl00_cphMain_ctlAjaxCalendar_cmbD", aaa_impliment_date, 0],
+    ["ctl00_cphMain_ddlJigen", aaa_impliment_time, 0],
+    # この条件で検索する
+    ["ctl00_cphMain_ibtnSearch", 1, 0],
+    # 出欠入力
+    ["ctl00_cphMain_grdJugSearchList_ctl02_ibtnInput", 1, 0]
+]
+operate_browser(list_op_select_subj_datetime)
+
+# aaa_dict_attendance のデータを入力
+input_attendance(aaa_dict_attendance, "ctl00_cphMain_grdJugSearchList", shusseki, kesseki)
+element = browser.find_element_by_id("ctl00_cphMain_ibtnRegistrationT")
+element.click()
+time.sleep(3)
+element_alert = browser.switch_to.alert
+element_alert.accept()
+time.sleep(2)
+browser.quit()
