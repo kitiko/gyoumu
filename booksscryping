@@ -1,0 +1,92 @@
+# 時間に関するライブラリを読み込む
+import time
+from warnings import simplefilter
+# クリップボードのライブラリを読み込む
+import pyperclip
+import gspread_dataframe
+import datetime
+import gspread
+import pandas as pd
+import openpyxl
+import xlrd
+import requests
+import re
+from statistics import mode
+import sys
+from glob import glob
+import subprocess
+from bs4 import BeautifulSoup
+
+txt1 = "https://www.books.or.jp/books/detail/2133130"
+txt2 = ""
+txt3 = ""
+txt4 = ""
+txt5 = ""
+
+wc = openpyxl.load_workbook('C:\\Users\\a\\Desktop\\参考文献リスト.xlsx')
+sheet = wc['Sheet1']
+url2 =  [txt1,txt2,txt3,txt4,txt5]
+url2 = list(filter(None, url2)) #空欄を省く処理
+count = 0
+saigonogyo= sheet.max_row #最後の行を析出
+
+for i in url2:
+  count += 1
+  
+
+  #スクレイピング
+  url = i
+  res = requests.get(url)
+  soup = BeautifulSoup(res.text,'html.parser')
+ 
+  tyosya = soup.find_all("a")[8].text
+  title = soup.find_all("h1")[0].text
+
+
+  aaa = ""
+  for b_tag  in  soup.find_all(class_="books__detail-head"):
+     ptag = b_tag.select("p")[1]
+  aaa = str(ptag)
+  subtitle1  = ptag.text
+  if  "p" in aaa and not "著" in aaa and not "編" in aaa :
+     subtitle = "ー"+subtitle1+"ー"
+     
+  for a_tag in soup.find_all("ul","books__info__list"):
+    ddtag = a_tag.select("dd")
+    ISBN = ddtag[0].text
+    syultupannsya = ddtag[1].text
+    syultupannnenn =  ddtag[5].text
+    syultupannnenn = str.lstrip(syultupannnenn) 
+    
+#大学方式並べ替え
+    dff=  tyosya+'：'+title+'、'+subtitle+'、'+syultupannsya+'、'+syultupannnenn
+    subtitle = ""
+    print(dff)
+    
+
+#エクセルに入れる
+  basyo = 'C:\\Users\\a\\Desktop\\04.相互貸借申込書.xlsx'
+  ex = 'C:\\Users\\a\\Desktop\\'
+  ex1=  re.sub(r'[\\/:*?"<>|]+','',title)
+  ex2= '.xlsx'
+  export = ex+ex1+ex2
+  wb =openpyxl.load_workbook(basyo)
+  sh = wb["入力用"]
+
+  sh["H14"]=title #書名
+  sh["H16"]=ISBN #ISBN
+  sh["H18"]=tyosya #著者
+  sh["H20"]=syultupannnenn #年号
+  sh["H21"]=syultupannsya #出版社
+  sh["H24"]='きち'
+  sh["X24"]='学科助教'
+  sh["H49"]='きち'
+  sh["X49"]='学科助教'
+  wb.save(export)
+  
+#エクセルにアウトする部分 (大学方式文献リスト)  
+  doltukingu = saigonogyo + count
+  u1="A"+str(doltukingu) 
+  print(u1)      
+  sheet[u1] = dff
+  wc.save('C:\\Users\\a\\Desktop\\参考文献リスト.xlsx')
