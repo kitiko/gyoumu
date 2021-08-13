@@ -192,7 +192,7 @@ gs = gspread.authorize(credentials)
 
 
 #共有したスプレッドシートのキーを使ってシートの情報を取得
-SPREADSHEET_KEY = '1U5xdfJCUOa3VCX0QZLGQ0rDJJBkmyJT-7hU3zAeTWM8'
+SPREADSHEET_KEY = 'しーとのきー'
 worksheet = gs.open_by_key(SPREADSHEET_KEY).worksheet("フォームの回答 1")
 
 workbook = gs.open_by_key(SPREADSHEET_KEY)
@@ -251,7 +251,7 @@ elif last_number <=1:
     full_name = data.iat[row,2]  # お名前
     msg = MIMEText(full_name+"様"+"\n\n" + body)
     msg['Subject'] = title
-    msg['From'] = 'kitikochann@gmail.com'
+    msg['From'] = 'メールアドレス'
     msg['To'] = data.iat[row,4] # 学生のメールアドレス
     msg['Date'] = formatdate()
 
@@ -259,7 +259,7 @@ elif last_number <=1:
     smtp.ehlo()
     smtp.starttls()
     smtp.ehlo()
-    smtp.login('kitikochann@gmail.com', '19840525aA')
+    smtp.login('メールアドレス', 'ぱすわーど')
     smtp.send_message(msg)
     smtp.close()
 
@@ -376,7 +376,7 @@ driver_path = webdriver.Chrome(ChromeDriverManager().install())
 # Chrome を起動。以後、 browser という名前で操作する
 browser = driver_path
 # 変数 url に web page の url をいれる
-url = 'https://sun.kinwu.ac.jp/aa_web/'
+url = 'あくてぃぶあかでみーのURL'
 # url を読み込む
 browser.get(url)
 
