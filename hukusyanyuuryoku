@@ -1,0 +1,130 @@
+# 時間に関するライブラリを読み込む
+import time
+from warnings import simplefilter
+# クリップボードのライブラリを読み込む
+import pyperclip
+import gspread_dataframe
+import datetime
+import gspread
+import pandas as pd
+import openpyxl
+import xlrd
+import requests
+import re
+from statistics import mode
+import sys
+from glob import glob
+import subprocess
+from bs4 import BeautifulSoup
+
+
+txt1 = "https://ci.nii.ac.jp/naid/120006839336"
+txt2 = ""
+txt3 = ""
+txt4 = ""
+txt5 = ""
+
+wc = openpyxl.load_workbook('C:\\Users\\a\\Desktop\\参考文献リスト.xlsx')
+sheet = wc['Sheet1']
+
+url2 =  [txt1,txt2,txt3,txt4,txt5]
+url2 = list(filter(None, url2)) #空欄を省く処理
+count = 0
+saigonogyo= sheet.max_row #最後の行を析出
+for i in url2:
+  count += 1
+
+  #スクレイピング
+  url = i
+  res = requests.get(url)
+
+  soup = BeautifulSoup(res.text,'html.parser')
+  df = pd.DataFrame(columns=['誌名', '巻号', '年', '頁','著者','論題','版','申込者','身分'])
+
+
+  #巻号、ページ、年月日
+  a = soup.find_all('p',attrs={'class':'item_extraData containedjournaldata'})[0].text
+  result = []
+  msg = ''
+  for i in a:
+   if(i in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9","(",")","-",".","・","_"]):
+      msg = msg + i
+   else:
+      result.append(msg)
+      msg = ''
+  kou = list(filter(None, result))
+
+  kanngou = (kou[0])
+  page = (kou[1])
+  nengou = (kou[2])
+
+  #論題
+  a = soup.find_all('h1',attrs={'class':'paper_class entry-title'})[0].text
+  pp =[] 
+  d = re.sub(r"[a-z,A-Z,\n,-,\s,]","",a)
+  pp.append(d)
+  aaa= pd.unique(pp).tolist()
+
+  #誌名
+  a = soup.find_all('p',attrs={'class':'item_extraData containedjournaldata'})[0].text
+  b = a.find(',')
+  simei = a[:b]
+  simei1 = re.sub(r"[0-9,(,),\n,-,\s,]","",simei)
+
+  #著者
+  a = soup.find_all('li', class_='authorname')
+  b =len(a)
+  dd = []
+  for i in range(b-1):
+   a = soup.find_all('li', class_='authorname')[i].text
+   d = re.sub(r"[a-z,A-Z,\n]","",a)
+   dd.append(d)
+   aaaa= pd.unique(dd).tolist()
+  
+  #データフレーム作成
+  df = pd.DataFrame(columns=['誌名', '巻号', '年', '頁','著者','論題','版','申込者','身分'])
+  df = pd.DataFrame({'誌名': [simei1],
+                '巻号': [kanngou],
+                '年': [nengou],
+                '頁': [page],
+                '著者': [aaaa[0]],
+                '論題': [aaa[0]],
+                '版': [''],
+                '申込者': ['一'],
+                '身分': ['教'],})
+
+
+  #エクセルに入れる
+  basyo = 'C:\\Users\\a\\Desktop\\03.文献複写申込書.xlsx'
+  ex = 'C:\\Users\\a\\Desktop\\'
+  ex1=  re.sub(r'[\\/:*?"<>|]+','',aaa[0])
+  ex2= '.xlsx'
+  export = ex+ex1+ex2
+
+  wb =openpyxl.load_workbook(basyo)
+  sh = wb["入力用"]
+  aaabb= aaa[0]
+  
+  sh["G14"]=simei1 #誌名
+  sh["G16"]=kanngou #巻号
+  sh["G17"]=nengou #年
+  sh["G18"]=page #頁
+  sh["G19"]=aaaa[0] #著者
+  sh["G20"]=aaa[0][0:26] #論題 26文字目まで
+  sh["G21"]=aaa[0][26:] #論題 26文字目以降
+  sh["H24"]='一'
+  sh["U24"]='助教'
+  sh["H49"]='一'
+  sh["U49"]='助教'
+  wb.save(export)
+  
+  
+ #大学方式並べ替え
+  dff=  aaaa[0]+'：'+aaa[0]+'、'+simei1+'、'+kanngou+'、'+page+'、'+nengou
+  print(dff)
+#エクセルにアウトする部分 (大学方式文献リスト)  
+  doltukingu = saigonogyo + count
+  u1="A"+str(doltukingu) 
+  print(u1)      
+  sheet[u1] = dff
+  wc.save('C:\\Users\\a\\Desktop\\参考文献リスト.xlsx')
